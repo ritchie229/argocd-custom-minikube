@@ -1,6 +1,22 @@
 
 # ARGO CD
 
+## Project structure
+```bash
+argocd-custom-minikube/
+├── another_ns.yaml
+├── argo_login.sh
+├── close_custom.sh
+├── close_ports.sh
+├── dns_check.sh
+├── install_bak.yaml
+├── install.yaml
+├── list_rules.sh
+├── open_ports.sh
+├── README.md
+└── Taskfile.yaml
+
+```
 ## Install Minikube
 
 ### Minikube prep
@@ -50,6 +66,7 @@ minikube delete --all --purge
 
 
 ## ArgoCD thru kubectl
+
 ### Install
 ```bash
 kubectl create namespace argocd
@@ -106,6 +123,7 @@ kubectl exec -n argocd -it deploy/argocd-application-controller -- \
 ```
 
 ## USEFUL SCRIPS
+
 ### For Remote Repo Access from othe NameSpaces
 ```bash
 kubectl apply -f another_ns.yam
@@ -129,6 +147,7 @@ kubectl apply -f another_ns.yam
 
 
 ## ARGO CD CLI
+
 ### Install
 ```bash
 curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
@@ -138,7 +157,15 @@ argocd version
 
 ```
 
-
+### Argo CLI login
+Argo CLI login looks like this:
+```bash
+argocd login <CLUSTER_IP:PORT> --username admin --password <PWD> --insecure
+```
+The scrip below will log you in automatically at one run
+```bash
+./argo_login.sh
+```
 
 
 
