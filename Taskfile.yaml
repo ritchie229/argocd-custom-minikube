@@ -1,0 +1,132 @@
+version: "3"
+
+env:
+  CLUSTER_NAME: devops-directive-kubernetes-course
+  CIVO_REGION: NYC1
+  GCP_REGION: us-central1
+  GCP_ZONE: us-central1-a
+  # Set default gum style options
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+
+tasks:
+  mini:1-start-minikube-ingress-tunnel:
+    cmds:
+      - minikube start --nodes=3 --driver=docker --cpus=2 --memory=4096 --addons=[ingress] --force --profile minitunnel
+      - minikube addons enable ingress
+      - kubectl label node minikube-m02 type=worker node-role.kubernetes.io/worker=
+      - kubectl label node minikube-m03 type=worker node-role.kubernetes.io/worker=
+      - minikube tunnel
+    desc: "start-minikube-ingress-tunnel"
+
+  mini:2-start-pv-pvc-deployments-services-ingress:
+    cmds:
+      - kubectl apply -f k8s/mysql-pv.yaml
+      - kubectl apply -f k8s/mysql-pvc.yaml
+      - kubectl apply -f k8s/mysql-deployment.yaml
+      - kubectl apply -f k8s/mysql-service.yaml
+      - kubectl apply -f k8s/flask-deployment.yaml
+      - kubectl apply -f k8s/flask-service.yaml
+      - kubectl apply -f k8s/ingress.yaml
+    desc: "start-app-side"
+
+  mini:3a-flask-autoscaler-start:
+    cmds:
+      - kubectl apply -f k8s/flask-autoscaler.yaml
+    desc: "autoscaler"
+
+  mini:3b-flask-autoscaler-stop:
+    cmds:
+      - kubectl delete -f k8s/flask-autoscaler.yaml
+    desc: "autoscaler"
+
+  mini:4a-add-ingress-address-to-hosts:
+    cmds:
+      - kubectl describe ingress notebook-ingress | awk '/Address:/ {print $2}' | xargs -I {} echo "{}   notebook.local" | sudo tee -a /etc/hosts
+    desc: "Add <Ingress Address> notebook.local to  /etc/hosts"
+
+  mini:4b-delete-ingress-address-to-hosts:
+    cmds:
+      - sudo sed -i.bak '/notebook.local/d' /etc/hosts
+    desc: "Remove <Ingress Address> notebook.local to  /etc/hosts"
+
+
+  mini:5-stop-pv-pvc-deployments-services-ingress:
+    cmds:
+      - kubectl delete -f k8s/ingress.yaml
+      - kubectl delete -f k8s/flask-service.yaml
+      - kubectl delete -f k8s/flask-deployment.yaml
+      - kubectl delete -f k8s/mysql-service.yaml
+      - kubectl delete -f k8s/mysql-deployment.yaml
+      - kubectl delete -f k8s/mysql-pvc.yaml
+      - kubectl delete -f k8s/mysql-pv.yaml
+    desc: "stop app"
+
+  mini:6-delete-cluster:
+    cmds:
+      - minikube delete
+    desc: "delete cluster"
+
+
+
+
+
+  argo:1-start-minikube:
+    cmds:
+      - minikube start --nodes=3 --driver=docker --cpus=2 --memory=4096 --force --cni=flannel --preload --dns-domain=cluster.local --embed-certs --kubernetes-version=1.27.0
+      - kubectl label node minikube-m02 type=worker node-role.kubernetes.io/worker=
+      - kubectl label node minikube-m03 type=worker node-role.kubernetes.io/worker=
+    desc: "Start minikube correctly adding correct labels"
+
+  argo:1-test-dns:
+    cmds:
+      - kubectl run -it --rm test --image=busybox --restart=Never -- nslookup google.com
+    desc: "Optionally DNS check"
+
+  argo:2-install-ingress:
+    cmds:
+      - helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      - helm repo update
+      - |
+        helm install ingress-nginx ingress-nginx/ingress-nginx \
+        --namespace ingress-nginx \
+        --create-namespace
+    desc: "Install Ingress to minikube's ingress-nginx namespace"
+
+
+  argo:3-install-argocd:
+    cmds:
+      - helm install notebook ./notebook-chart
+    desc: "Helm install notebook"
+
+  argo:3b-uninstall-notebook:
+    cmds:
+      - helm uninstall notebook
+    desc: "Helm uninstall notebook"
+
+  argo:4b-add-ingress-address-to-hosts:
+    cmds:
+      - kubectl describe ingress notebook-ingress | awk '/Address:/ {print $2}' | xargs -I {} echo "{}   notebook.local" | sudo tee -a /etc/hosts
+    desc: "Add <Ingress Address> notebook.local to  /etc/hosts"
+
+  argo:4b-delete-ingress-address-to-hosts:
+    cmds:
+      - sudo sed -i.bak '/notebook.local/d' /etc/hosts
+    desc: "Remove <Ingress Address> notebook.local to  /etc/hosts"
+
+  argo:5-minikube-tunnel:
+    cmds:
+      - minikube tunnel
+    desc: "Start minikube tunnel"
+  
+  argo:6-delete-cluster:
+    cmds:
+      - minikube delete --all --purge
+    desc: "Fully delete cluster"
+
+  cluster:create-ANOTHER-cluster:
+    cmds:
+      - minikube start --nodes=1 --driver=docker --profile ANOTHER --force
+    desc: Cluster ANOTEHR
