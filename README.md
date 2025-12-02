@@ -158,15 +158,108 @@ argocd version
 ```
 
 ### Argo CLI login
-Argo CLI login looks like this:
+
+#### Argo CLI login looks like this:
 ```bash
 argocd login <CLUSTER_IP:PORT> --username admin --password <PWD> --insecure
 ```
-The scrip below will log you in automatically at one run
+#### ArgoCD URL
+```bash
+minikube service argocd-server -n argocd --url
+```
+#### Admin PWD
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo
+```
+#### The scrip below will log you in automatically at one run
 ```bash
 ./argo_login.sh
 ```
+### Repo adding
 
+#### Public repo
+```bash
+argocd repo add https://github.com/USER/REPO.git
+```
+#### Private repo (https+token)
+```bash
+argocd repo add https://github.com/USER/REPO.git \
+  --username USER --password <PERSONAL_ACCESS_TOKEN>
+```
+#### Private repo (ssh)
+```bash
+argocd repo add git@github.com:USER/REPO.git --ssh-private-key-path ~/.ssh/id_rsa
+```
+#### checking repo list added
+```bash
+argocd repo list
+```
+
+### Repo structure (GitOps eg.)
+
+```bash
+repo-root/
+├─ apps/
+│  ├─ myapp/
+│  │  ├─ base/           # kustomize base or raw manifests
+│  │  │  └─ deployment.yaml
+│  │  └─ overlays/
+│  │     └─ dev/         # overlay for dev (kustomize) or helm values.yaml
+├─ charts/               # optionally: helm charts
+└─ argocd/               # optionally: ArgoCD Application manifests (declarative)
+   └─ myapp-application.yaml
+```
+#### myapp-application.yaml example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/USER/REPO.git'   # or git@github.com:USER/REPO.git
+    targetRevision: HEAD
+    path: apps/myapp/base
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: myapp-namespace
+  syncPolicy:
+    automated:
+      prune: true      # removing non-existing resources from Git
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+#### Applying myapp-application.yaml 
+```bash
+kubectl apply -f argocd/myapp-application.yaml
+```
+
+#### or thru CLI:
+```bash
+argocd app create myapp \
+  --repo https://github.com/USER/REPO.git \
+  --path apps/myapp/base \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace myapp-namespace \
+  --sync-policy automated --auto-prune --self-heal
+```
+#### Testing
+```bash
+argocd app get myapp
+argocd app list
+```
+
+### Best Practices
+
+> [!TIP]
+> spec.syncPolicy.automated + prune: true + selfHeal: true — make ArgoCD automatic, all changes in git repo will be applyed, removed resources will be removed completely, deviations will be corrected.
+> syncOptions: 
+>   CreateNamespace=true - argocd creates requested namespace itself.
+>   ApplyOutOfSyncOnly=true — applyes only the changes, economic.
 
 
 
