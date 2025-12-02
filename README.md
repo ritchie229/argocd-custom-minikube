@@ -61,8 +61,8 @@ kubectl run -n default -it --rm dns-test --image=busybox --restart=Never -- nslo
 ```bash
 minikube delete --all --purge
 ```
-:warning: docker ps -aq | xargs docker rm -f **DONT DO THIS**
-:warning: docker network prune -f **DONT DO THIS**
+:warning: docker ps -aq | xargs docker rm -f **DONT DO THIS**<br>
+:warning: docker network prune -f **DONT DO THIS**<br>
 
 
 ## ArgoCD thru kubectl
@@ -86,8 +86,8 @@ kubectl -n argocd edit service/argocd-server
 
 ### Argo CD web interface log in info
 
-Username: admin
-Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+**Username:** admin <br>
+**Password:** kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d <br>
 
 
 ### DNS Check
@@ -122,25 +122,25 @@ kubectl exec -n argocd -it deploy/argocd-application-controller -- \
 
 ```
 
-## USEFUL SCRIPS
+## USEFUL SCRIPTS
 
-### For Remote Repo Access from othe NameSpaces
+#### For Remote Repo Access from othe NameSpaces
 ```bash
 kubectl apply -f another_ns.yam
 ```
-### To Open External access to ClusterIP:NodePort thru manually specified external port
+#### To Open External access to ClusterIP:NodePort thru manually specified external port
 ```bash
 ./open_ports.sh
 ```
-### To close External access to ClusterIP:NodePort thru manually specified external port
+#### To close External access to ClusterIP:NodePort thru manually specified external port
 ```bash
 ./close_ports.sh
 ```
-### To list IP Tables NAT Rules
+#### To list IP Tables NAT Rules
 ```bash
 ./list_rules.sh
 ```
-### Use this to remove rules manually entering Ext_Port, ClusterIP and NodePort, ie. cleanup garbage
+#### Use this to remove rules manually entering Ext_Port, ClusterIP and NodePort, ie. cleanup garbage
 ```bash
 ./close_custom.sh
 ```
@@ -256,10 +256,11 @@ argocd app list
 ### Best Practices
 
 > [!TIP]
-> spec.syncPolicy.automated + prune: true + selfHeal: true — make ArgoCD automatic, all changes in git repo will be applyed, removed resources will be removed completely, deviations will be corrected.
-> syncOptions: 
->   CreateNamespace=true - argocd creates requested namespace itself.
->   ApplyOutOfSyncOnly=true — applyes only the changes, economic.
+> **spec.syncPolicy.automated + prune: true + selfHeal: true** <br> 
+> makes ArgoCD automatic, all changes in git repo will be applyed, removed resources will be removed completely, deviations will be corrected.<br>
+> **syncOptions:**<br>
+>  **CreateNamespace=true** - argocd creates requested namespace itself.<br>
+>  **ApplyOutOfSyncOnly=true** — applyes only the changes, economic.<br>
 
 
 
