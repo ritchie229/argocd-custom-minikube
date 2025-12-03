@@ -1,5 +1,6 @@
-
 # ARGO CD
+
+<img width="830" height="298" alt="image" src="https://github.com/user-attachments/assets/78247325-f8ad-477c-a04e-6ddfbbb70111" />
 
 ## Project structure
 ```bash
@@ -9,14 +10,21 @@ argocd-custom-minikube/
 ├── close_custom.sh
 ├── close_ports.sh
 ├── dns_check.sh
-├── install_bak.yaml
 ├── install.yaml
 ├── list_rules.sh
+├── monitoring
+│   ├── grafana.yaml
+│   ├── prometheus.yaml
+│   └── README.md
 ├── open_ports.sh
 ├── README.md
 └── Taskfile.yaml
 
 ```
+> [!NOTE]
+> For monitoring section please read monitoring/README.md
+
+
 ## Install Minikube
 
 ### Minikube prep
