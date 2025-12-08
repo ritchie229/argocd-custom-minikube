@@ -1,6 +1,6 @@
 # K8S MONITORING thru ARGOCD
 
-## Prometheus official repo add
+### Prometheus official repo add
 
 ```bash
 argocd repo add https://prometheus-community.github.io/helm-charts \
@@ -14,7 +14,7 @@ argocd repo add https://prometheus-community.github.io/helm-charts \
 > kube-state-metrics <br>
 > node-exporter <br>
 
-### Grafana ifficial repo add
+### Grafana official repo add
 
 ```bash
 argocd repo add https://grafana.github.io/helm-charts \
@@ -48,7 +48,7 @@ spec:
           service:
             type: NodePort
           persistentVolume:
-            enabled: false
+            enabled: false  # To avoid hanging of the pod at unbound immediate PersistentVolumeClaims
           resources:
             requests:
               cpu: 100m
@@ -62,7 +62,7 @@ spec:
           service:
             type: NodePort
           resources:
-            requests:
+            requests:  # without limiting Alertmanager and Pushgateway can eat up all the resource, start OOMKill and overload all the cluster. 
               cpu: 50m
               memory: 128Mi
             limits:
@@ -231,6 +231,79 @@ or else you can add them manually using ID - the best and shortest option
 ```bash
 kubectl apply -f prometheus.yaml
 kubectl apply -f grafana.yaml
+
+```
+### ArgoCD CLI cmd vs. prometheus.yaml
+
+```bash
+argocd app create prometheus \
+  --project default \
+  --repo https://prometheus-community.github.io/helm-charts \
+  --helm-chart prometheus \
+  --revision "*" \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace monitoring \
+  --sync-policy automated \
+  --self-heal \
+  --auto-prune \
+  --sync-option CreateNamespace=true \
+  \
+  --helm-set server.service.type=NodePort \
+  --helm-set server.persistentVolume.enabled=false \
+  --helm-set server.resources.requests.cpu=100m \
+  --helm-set server.resources.requests.memory=256Mi \
+  --helm-set server.resources.limits.cpu=500m \
+  --helm-set server.resources.limits.memory=512Mi \
+  \
+  --helm-set alertmanager.enabled=true \
+  --helm-set alertmanager.service.type=NodePort \
+  --helm-set alertmanager.resources.requests.cpu=50m \
+  --helm-set alertmanager.resources.requests.memory=128Mi \
+  --helm-set alertmanager.resources.limits.cpu=200m \
+  --helm-set alertmanager.resources.limits.memory=256Mi \
+  \
+  --helm-set pushgateway.enabled=true \
+  --helm-set pushgateway.service.type=NodePort \
+  --helm-set pushgateway.resources.requests.cpu=50m \
+  --helm-set pushgateway.resources.requests.memory=64Mi \
+  --helm-set pushgateway.resources.limits.cpu=100m \
+  --helm-set pushgateway.resources.limits.memory=128Mi
+
+```
+```bash
+argocd app sync prometheus
+
+```
+
+### ArgoCD CLI cmd vs. grafana.yaml
+
+```bash
+argocd app create grafana \
+  --project default \
+  --repo https://grafana.github.io/helm-charts \
+  --helm-chart grafana \
+  --revision "*" \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace monitoring \
+  --sync-policy automated \
+  --self-heal \
+  --auto-prune \
+  --sync-option CreateNamespace=true \
+  --helm-set adminUser=admin \
+  --helm-set adminPassword=admin \
+  --helm-set service.type=NodePort \
+  --helm-set persistence.enabled=false \
+  --helm-set datasources.datasources\\.yaml.apiVersion=1 \
+  --helm-set datasources.datasources\\.yaml.datasources[0].name=Prometheus \
+  --helm-set datasources.datasources\\.yaml.datasources[0].type=prometheus \
+  --helm-set datasources.datasources\\.yaml.datasources[0].url=http://prometheus-server.monitoring.svc.cluster.local \
+  --helm-set datasources.datasources\\.yaml.datasources[0].access=proxy \
+  --helm-set datasources.datasources\\.yaml.datasources[0].isDefault=true
+
+```
+```bash
+argocd app sync grafana
+argocd app get grafana
 
 ```
 
